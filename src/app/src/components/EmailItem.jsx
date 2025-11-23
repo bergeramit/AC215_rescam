@@ -180,4 +180,3 @@ function EmailItem({ email }) {
 }
 
 export default EmailItem
-
