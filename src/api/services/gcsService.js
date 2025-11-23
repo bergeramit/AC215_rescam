@@ -4,10 +4,10 @@ const storage = new Storage({
   projectId: process.env.GCP_PROJECT_ID
 })
 
-const bucket = storage.bucket(process.env.GCS_BUCKET_NAME || 'rescam-dataset-bucket')
+const bucket = storage.bucket('rescam-user-emails')
 
 export function getEmailClassificationsPath(userEmail) {
-  return `email-classifications/${userEmail}/emails.json`
+  return `user-classifications/${userEmail}/emails.json`
 }
 
 export async function getEmailClassifications(userEmail) {

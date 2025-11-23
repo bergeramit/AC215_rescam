@@ -1,16 +1,23 @@
 import { useState, useEffect } from 'react'
-import EmailItem from './EmailItem'
+import ClassificationItem from './ClassificationItem'
 
 function Classifications({ userEmail, eventSource }) {
     const [emails, setEmails] = useState([])
     const [isExpanded, setIsExpanded] = useState(true)
+
+    // DEBUG: Print current state
+    console.log('Rendering Classifications, emails count:', emails.length)
 
     useEffect(() => {
         if (!eventSource) return
 
         const handleMessage = (event) => {
             try {
+                // DEBUG: Print raw event data
+                console.log('Received raw SSE event:', event)
                 const data = JSON.parse(event.data)
+                console.log('Parsed SSE data:', data)
+
                 if (data.type === 'classification_update' && data.email && data.email.emails) {
                     console.log('Received classification update', data.email.emails.length)
                     setEmails(data.email.emails)
@@ -91,15 +98,12 @@ function Classifications({ userEmail, eventSource }) {
             <div
                 className={`collapsible-content ${isExpanded ? 'expanded' : 'collapsed'}`}
                 style={{
-                    maxHeight: isExpanded ? '800px' : '0',
                     transition: 'max-height var(--transition-slow), opacity var(--transition-base)',
                     opacity: isExpanded ? 1 : 0
                 }}
             >
                 <div style={{
                     padding: 'var(--spacing-md)',
-                    maxHeight: '800px',
-                    overflowY: 'auto',
                     background: 'var(--color-surface)',
                     display: 'flex',
                     flexDirection: 'column',
@@ -131,7 +135,7 @@ function Classifications({ userEmail, eventSource }) {
                         </div>
                     ) : (
                         emails.map((email) => (
-                            <EmailItem key={email.id} email={email} />
+                            <ClassificationItem key={email.id} item={email} />
                         ))
                     )}
                 </div>
