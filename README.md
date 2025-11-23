@@ -2,16 +2,15 @@
 
 Rescam is a phishing email detection system that uses Retrieval-Augmented Generation (RAG) to classify emails as benign, spam, scam, or suspicious. The system combines Vertex AI Vector Search for semantic similarity matching with Google's Gemini model for intelligent classification based on retrieved context.
 
+<video autoplay loop muted controls src="RescamDemoMS4.mov" width="1280" height="720"></video>
+
 ## 📋 Table of Contents
 
-- [Architecture Overview](#architecture-overview)
-- [Data Pipeline](#data-pipeline)
-- [RAG Model Design](#rag-model-design)
-- [Environment Setup](#environment-setup)
-- [Docker Setup](#docker-setup)
-- [Usage Instructions](#usage-instructions)
-- [Project Structure](#project-structure)
-- [Web App](#web-app)
+- [🏗️ Architecture Overview](#architecture-overview)
+- [🔄 DataPipeline - Preprocess Container](#data-pipeline)
+- [🤖 Fraud Classification Service - Cloud Run](#rag-model-design)
+- [🚀 SaaS Application - Docker Compose Containers](#docker-compose-containers)
+- [📜 Appendix](#appendix)
 
 ## 🏗️ Architecture Overview
 
@@ -161,7 +160,7 @@ gcloud run deploy firestore-event-handler \
   --set-env-vars GCP_PROJECT_ID=articulate-fort-472520-p2
 ```
 
-## SaaS Application - Docker Compose Containers
+## 🚀 SaaS Application - Docker Compose Containers
 
 This is our SaaS application that provides a user interface for interacting with the Rescam system.
 
@@ -200,11 +199,11 @@ Then navigate to http://localhost:3000/
 - View it in dashboard
 
 
-# Appendix
+## 📜 Appendix
 
-## 🔧 Environment Setup
+### 🔧 Environment Setup
 
-### Prerequisites
+#### Prerequisites
 
 - Python 3.12+
 - Google Cloud Platform account with billing enabled
@@ -212,7 +211,7 @@ Then navigate to http://localhost:3000/
 - Docker and Docker Compose installed
 - Google Cloud SDK (`gcloud`) installed and authenticated
 
-### GCP Authentication
+#### GCP Authentication
 
 1. **Install Google Cloud SDK** (if not already installed):
    ```bash
@@ -250,7 +249,7 @@ src/app/.env
 src/api/.env
 ```
 
-### Enable Required APIs
+#### Enable Required APIs
 
 Enable the following Google Cloud APIs:
 
@@ -333,7 +332,7 @@ docker-compose down
 docker-compose stop
 ```
 
-## 🔒 Security Notes
+### 🔒 Security Notes
 
 **Current Setup (Development)**:
 - Credentials are copied to `secrets/` directory and mounted into containers
@@ -344,7 +343,7 @@ docker-compose stop
 2. **Environment Variables**: Use environment variables instead of file mounting
 3. **Workload Identity**: Use Google Cloud Run or Kubernetes with Workload Identity (most secure)
 
-## 🆘 Troubleshooting
+### 🆘 Troubleshooting
 
 ### Common Issues
 
@@ -368,9 +367,9 @@ docker-compose stop
 - Verify credentials file exists in `secrets/` directory
 - Rebuild containers: `docker-compose build --no-cache`
 
-# Working on email pipeline
+### Working on email pipeline
 
-## Setup the sso + pub/sub for incoming emails
+#### Setup the sso + pub/sub for incoming emails
 ```bash
 # Run both the api and the frontend containers
 docker-compose up --build
@@ -385,7 +384,7 @@ Then click the "Watch" button.
 Finally -> send an email to amitberger02@gmail.com
 
 
-## Setup the infer docker:
+#### Setup the infer docker:
 
 Goal of this docker: listen for Firestore changes -> get the Eventarc response and get the actual email stored -> call gemini with RAG and infer what is the classidication of this, then store back to GCS at rescam-user-emails/user-classifications/amitberger02@gmail.com/emails.json
 
