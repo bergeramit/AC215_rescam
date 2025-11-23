@@ -15,24 +15,17 @@ Rescam is a phishing email detection system that uses Retrieval-Augmented Genera
 
 ## 🏗️ Architecture Overview
 
-The Rescam system consists of two main components:
+The Rescam system consists of three main components:
 
 1. **Data Pipeline** (`src/datapipeline/`): Processes raw email datasets, creates unified datasets, and builds a RAG index using Vertex AI Vector Search
 2. **Models** (`src/models/`): Uses the RAG index to classify new emails using a Gemini-based classifier
+3. **Web App** (`src/app/`): A React-based web application that provides a user interface for interacting with the Rescam system
 
-### Data Flow
+### Here is an overview of the system:
 
-```
-Raw Email Data (CSV files)
-    ↓
-[preprocess_clean.py] → Unified Dataset (Parquet) → GCS Bucket
-    ↓
-[preprocess_rag.py] → Embeddings → Vertex AI Vector Search Index
-    ↓
-[model_rag.py] → Query RAG Index → Classify Email → JSON Result
-```
+![Alt Text](RescamArchitecture.png "System Diagram")
 
-## 🔄 Data Pipeline
+## 🔄 DataPipeline - Preprocess Container
 
 The data pipeline consists of two main preprocessing scripts:
 
@@ -77,9 +70,12 @@ The data pipeline consists of two main preprocessing scripts:
 - `generate_fake_emails.py`: Generates synthetic email data for testing
 - `dataloader.py`: Helper module for GCS bucket operations and file management
 
-## 🤖 RAG Model Design
+## 🤖 Fraud Classification Service - Cloud Run
 
-### `model_rag.py`
+This is our Cloud Run componenet that handles the classification of emails using RAG-enabled generative AI.
+This happens via first listening to firestore for new emails, then using the RAG model to classify them and finally updating the GCS Bucket with the classification result.
+
+### 1. `model_rag.py`
 
 **Purpose**: Classifies emails using RAG-enabled generative AI.
 
@@ -135,6 +131,77 @@ The data pipeline consists of two main preprocessing scripts:
 - GCS Bucket: `rescam-dataset-bucket`
 - Default email file: `example_last_email.txt`
 
+### 2. `firestore_event_handler.py`
+
+This is our Cloud Function that handles the classification of emails using RAG-enabled generative AI.
+This happens via first listening to firestore for new emails, then using the RAG model to classify them and finally updating the GCS Bucket with the classification result.
+
+### 3. Deployment as Cloud Run
+
+Separate deployment for the classificatino model as Cloud Run to be able to run everytime an incoming email is added to firestore.
+
+```bash
+# 1. Authenticate Docker with GCR
+gcloud auth configure-docker
+
+
+# 2. Build with Tag and Push
+docker buildx build --platform linux/amd64 \
+  -t gcr.io/articulate-fort-472520-p2/firestore-event-handler:latest \
+  -f src/models/Dockerfile \
+  --push .
+
+# 3. Deploy on google Cloud Run
+gcloud run deploy firestore-event-handler \
+  --image gcr.io/articulate-fort-472520-p2/firestore-event-handler:latest \
+  --platform managed \
+  --region us-central1 \
+  --project articulate-fort-472520-p2 \
+  --allow-unauthenticated \
+  --set-env-vars GCP_PROJECT_ID=articulate-fort-472520-p2
+```
+
+## SaaS Application - Docker Compose Containers
+
+This is our SaaS application that provides a user interface for interacting with the Rescam system.
+
+### 1. `src/app`
+
+This is our Angular application that provides a user interface for interacting with the Rescam system.
+
+### 2. `src/api`
+
+This is our FastAPI application that provides a REST API for interacting with the Rescam system.
+
+### 3. Deployment as Docker Compose
+
+in order to run the app and api you need to run:
+```bash
+docker-compose up
+```
+
+On a different terminal run (to setup the ngrok tunnel so we would get the pubsub push):
+```bash
+ngrok http 5050
+```
+
+Copy the URL ngrok provided and run this in terminal (with example url):
+```bash
+gcloud pubsub subscriptions create gmail-notifications-push \
+     --topic=gmail-notifications \
+     --push-endpoint=https://prewireless-malaceous-earlie.ngrok-free.dev \
+     --project=articulate-fort-472520-p2
+```
+
+Then navigate to http://localhost:3000/
+- sign in with google (amitberger02@gmail.com)
+- start watch (pub/sub)
+- send email to yourself
+- View it in dashboard
+
+
+# Appendix
+
 ## 🔧 Environment Setup
 
 ### Prerequisites
@@ -172,6 +239,17 @@ The data pipeline consists of two main preprocessing scripts:
    cp ~/.config/gcloud/application_default_credentials.json src/models/secrets/
    ```
 
+To run everyting make sure you got:
+```bash
+secrets/application_default_credentials.json
+secrets/client_secret_1097076476714-9iaegt01febhsqh14niv8m2sjl8q07n7.apps.googleusercontent.com.json
+
+# Same .env -> see SETUP_GUIDE
+.env
+src/app/.env
+src/api/.env
+```
+
 ### Enable Required APIs
 
 Enable the following Google Cloud APIs:
@@ -179,85 +257,6 @@ Enable the following Google Cloud APIs:
 ```bash
 gcloud services enable aiplatform.googleapis.com --project=1097076476714
 gcloud services enable storage-api.googleapis.com --project=1097076476714
-```
-
-Or enable via [GCP Console](https://console.cloud.google.com/apis/library)
-
-## 🐳 Docker Setup
-
-The project uses Docker for isolated, reproducible environments. Each component has its own Dockerfile, and a centralized `docker-compose.yml` manages both services.
-
-### Docker Structure
-
-- **`src/datapipeline/Dockerfile`**: Data pipeline container
-  - Base: `python:3.12-slim-bookworm`
-  - Uses `uv` for dependency management
-  - Includes all preprocessing scripts and helpers
-  - Mounts GCP credentials
-
-- **`src/models/Dockerfile`**: Model inference container
-  - Base: `python:3.12-slim-bookworm`
-  - Uses `uv` for dependency management
-  - Includes model scripts (`model_rag.py`, `train_model.py`, `infer_model.py`)
-  - Mounts GCP credentials
-
-- **`docker-compose.yml`**: Centralized orchestration
-  - Defines both `datapipeline` and `models` services
-  - Configures volumes for secrets
-  - Sets default commands for each service
-  - Environment variables for GCP authentication
-
-### Building Docker Images
-
-**Using Docker Compose** (Recommended):
-```bash
-# Build both containers
-docker-compose build
-
-# Build specific service
-docker-compose build datapipeline
-docker-compose build models
-```
-
-**Using individual Dockerfiles**:
-```bash
-# Data pipeline
-cd src/datapipeline
-docker build -t preprocess-data -f Dockerfile .
-
-# Models
-cd src/models
-docker build -t ml-model -f Dockerfile .
-```
-
-### Docker Compose Configuration
-
-The `docker-compose.yml` file is pre-configured with default commands:
-
-- **datapipeline service**: Automatically runs `preprocess_clean.py` followed by `preprocess_rag.py`
-- **models service**: Automatically runs `model_rag.py` with default arguments
-
-Both services:
-- Mount `./secrets` directory for GCP credentials (read-only)
-- Set `GOOGLE_APPLICATION_CREDENTIALS` environment variable
-- Enable Python unbuffered output for real-time logs
-
-## 📝 Usage Instructions
-
-### Quick Start with Docker Compose
-
-The easiest way to run the entire pipeline:
-
-```bash
-# 1. Ensure credentials are in place
-cp ~/.config/gcloud/application_default_credentials.json src/datapipeline/secrets/
-cp ~/.config/gcloud/application_default_credentials.json src/models/secrets/
-
-# 2. Build and run data pipeline (cleans data and creates RAG index)
-docker-compose up datapipeline
-
-# 3. After RAG index is created and deployed, run classification
-docker-compose up models
 ```
 
 ### Detailed Workflow
@@ -313,39 +312,6 @@ cd src/datapipeline
 docker-compose run --rm datapipeline bash -c "source /home/app/.venv/bin/activate && python query_vertex_ai.py"
 ```
 
-#### Step 4: Classify Emails
-
-```bash
-# Using docker-compose (uses default arguments)
-docker-compose up models
-
-# Or with custom arguments
-docker-compose run --rm models bash -c \
-  "source /home/app/.venv/bin/activate && \
-   python model_rag.py \
-   --project_id 1097076476714 \
-   --index_endpoint_id YOUR_ENDPOINT_ID \
-   --deployed_index_id YOUR_DEPLOYED_INDEX_ID \
-   --gcs_bucket_name rescam-dataset-bucket \
-   --gcs_file_name example_last_email.txt"
-```
-
-### Alternative: Interactive Shell Mode
-
-If you need to run custom commands or debug:
-
-```bash
-# Data pipeline interactive shell
-docker-compose run --rm datapipeline
-
-# Models interactive shell
-docker-compose run --rm models
-
-# Inside container, activate venv and run commands
-source /home/app/.venv/bin/activate
-python your_script.py
-```
-
 ### View Logs
 
 ```bash
@@ -367,12 +333,6 @@ docker-compose down
 docker-compose stop
 ```
 
-## 📁 Project Structure
-
-```
-
-```
-
 ## 🔒 Security Notes
 
 **Current Setup (Development)**:
@@ -383,31 +343,6 @@ docker-compose stop
 1. **Service Account Keys**: Create a dedicated service account with minimal permissions
 2. **Environment Variables**: Use environment variables instead of file mounting
 3. **Workload Identity**: Use Google Cloud Run or Kubernetes with Workload Identity (most secure)
-
-For more details on secure credential management, see `reports/Journal.md`.
-
-## 📚 Additional Documentation
-
-- **`DOCKER_COMPOSE_GUIDE.md`**: Comprehensive guide on using Docker Compose
-- **`src/datapipeline/VERTEX_AI_SETUP.md`**: Step-by-step Vertex AI Vector Search setup
-- **`src/datapipeline/TESTING_GUIDE.md`**: Testing procedures and examples
-- **`reports/Journal.md`**: Development process and decisions
-
-## 🚀 Next Steps
-
-1. **Complete Vertex AI Setup**: Follow `src/datapipeline/VERTEX_AI_SETUP.md` to create and deploy the index
-2. **Upload Test Emails**: Use `upload_fake_data.py` or upload emails directly to GCS bucket
-3. **Test Classification**: Run `model_rag.py` with your deployed index
-4. **Production Deployment**: Consider using Cloud Run or Kubernetes for production deployment
-
-## 💰 Cost Considerations
-
-- **Vertex AI Vector Search**: ~$0.10/hour for e2-standard-2 instance (~$72/month if running 24/7)
-- **GCS Storage**: Minimal cost for dataset storage
-- **Gemini API**: Pay-per-use pricing
-- **Recommendation**: Undeploy index when not in use to reduce costs to ~$0.50/month (storage only)
-
-For detailed cost breakdown, see `src/datapipeline/VERTEX_AI_SETUP.md`.
 
 ## 🆘 Troubleshooting
 
@@ -432,46 +367,6 @@ For detailed cost breakdown, see `src/datapipeline/VERTEX_AI_SETUP.md`.
 - Check Docker logs: `docker-compose logs`
 - Verify credentials file exists in `secrets/` directory
 - Rebuild containers: `docker-compose build --no-cache`
-
-For more troubleshooting tips, see `src/datapipeline/VERTEX_AI_SETUP.md`.
-
-## Web App
-
-To run everyting make sure you got:
-```bash
-secrets/application_default_credentials.json
-secrets/client_secret_1097076476714-9iaegt01febhsqh14niv8m2sjl8q07n7.apps.googleusercontent.com.json
-
-# Same .env -> see SETUP_GUIDE
-.env
-src/app/.env
-src/api/.env
-```
-
-Then in terminal run:
-```bash
-ngrok http 5050
-```
-Copy the URL ngrok provided and run this in terminal (with example url):
-```bash
-gcloud pubsub subscriptions create gmail-notifications-push \
-     --topic=gmail-notifications \
-     --push-endpoint=https://prewireless-malaceous-earlie.ngrok-free.dev \
-     --project=articulate-fort-472520-p2
-```
-
-In a different terminal
-```bash
-docker-compose up --build
-```
-
-Then navigate to http://localhost:3000/
-- sign in with google
-- start watch (pub/sub)
-- send email to yourself
-- View it in dashboard
-
-
 
 # Working on email pipeline
 
