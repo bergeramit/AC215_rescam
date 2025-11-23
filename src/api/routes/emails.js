@@ -51,7 +51,7 @@ export function streamEmails(req, res) {
       }
     }
   })
-  
+
   res.on('error', () => {
     // Clean up on error
     const clients = sseClients.get(userEmail)

@@ -45,20 +45,3 @@ services:
   #     - GOOGLE_APPLICATION_CREDENTIALS=/home/app/.config/gcloud/application_default_credentials.json
   #     - PYTHONUNBUFFERED=1
   #   command: ["-c", "source /home/app/.venv/bin/activate && python preprocess_clean.py && python preprocess_rag.py"]
-
-  # models:
-  #   build:
-  #     context: .
-  #     dockerfile: ./src/models/Dockerfile
-  #   image: firestore-event-handler
-  #   container_name: firestore-event-handler
-  #   ports:
-  #     - "8080:8080"
-  #   volumes:
-  #     - ./secrets:/home/app/.config/gcloud:ro
-  #   environment:
-  #     - GOOGLE_APPLICATION_CREDENTIALS=/home/app/.config/gcloud/application_default_credentials.json
-  #     - GCP_PROJECT_ID=articulate-fort-472520-p2
-  #     - PORT=8080
-  #     - GEMINI_API_KEY=$GEMINI_API_KEY
-  #   command: ["sh", "-c", "/home/app/.venv/bin/uvicorn firestore_event_handler:app --host 0.0.0.0 --port ${PORT:-8080}"]

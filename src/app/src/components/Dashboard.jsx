@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { getStoredUser, signOut, getStoredToken } from '../auth/googleAuth'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import Inbox from './Inbox'
+import Classifications from './Classifications'
 import Sidebar from './Sidebar'
 
 function Dashboard() {
@@ -10,6 +11,7 @@ function Dashboard() {
   const navigate = useNavigate()
   const [isWatching, setIsWatching] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [eventSource, setEventSource] = useState(null)
 
   // Initialize theme on mount
   useEffect(() => {
@@ -17,11 +19,24 @@ function Dashboard() {
     document.documentElement.setAttribute('data-theme', savedTheme)
   }, [])
 
+  // Automatically start monitoring when component mounts
+  useEffect(() => {
+    const autoStartMonitoring = async () => {
+      // Only start if not already watching and user is authenticated
+      if (!isWatching && !loading && user) {
+        await startWatching()
+      }
+    }
+
+    autoStartMonitoring()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Only run once on mount
+
   const startWatching = async () => {
     try {
       setLoading(true)
       const token = getStoredToken()
-      
+
       if (!token) {
         alert('Please sign in first')
         navigate('/')
@@ -34,7 +49,6 @@ function Dashboard() {
         { headers: { Authorization: `Bearer ${token}` } }
       )
       setIsWatching(true)
-      alert('Gmail monitoring started!')
     } catch (error) {
       console.error('Error starting watch:', error)
       alert('Error starting Gmail watch: ' + (error.response?.data?.error || error.message))
@@ -207,36 +221,36 @@ function Dashboard() {
             <div style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 'var(--spacing-md)'
+              gap: 'var(--spacing-sm)',
+              padding: 'var(--spacing-sm) var(--spacing-md)',
+              background: isWatching ? 'var(--color-surface-hover)' : 'var(--color-surface)',
+              border: '1px solid var(--color-border)',
+              borderRadius: 'var(--radius-sm)',
+              fontSize: 'var(--font-size-sm)',
+              color: 'var(--color-text-primary)'
             }}>
-              {!isWatching ? (
-                <button
-                  onClick={startWatching}
-                  disabled={loading}
-                  className="btn btn-primary"
-                  style={{
-                    fontSize: 'var(--font-size-sm)',
-                    padding: 'var(--spacing-sm) var(--spacing-lg)',
-                    fontWeight: 'var(--font-weight-medium)'
-                  }}
-                >
-                  {loading ? 'Starting...' : 'Start Monitoring'}
-                </button>
-              ) : (
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 'var(--spacing-sm)',
-                  padding: 'var(--spacing-sm) var(--spacing-md)',
-                  background: 'var(--color-surface-hover)',
-                  border: '1px solid var(--color-border)',
-                  borderRadius: 'var(--radius-sm)',
-                  fontSize: 'var(--font-size-sm)',
-                  color: 'var(--color-text-primary)'
-                }}>
+              {loading ? (
+                <>
+                  <span style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: 'var(--radius-full)',
+                    background: 'var(--color-text-tertiary)',
+                    display: 'inline-block',
+                    animation: 'pulse 1.5s ease-in-out infinite'
+                  }}></span>
+                  <span style={{ fontWeight: 'var(--font-weight-medium)' }}>Starting Monitoring...</span>
+                </>
+              ) : isWatching ? (
+                <>
                   <span className="status-dot connected"></span>
                   <span style={{ fontWeight: 'var(--font-weight-medium)' }}>Monitoring Active</span>
-                </div>
+                </>
+              ) : (
+                <>
+                  <span className="status-dot disconnected"></span>
+                  <span style={{ fontWeight: 'var(--font-weight-medium)' }}>Monitoring Inactive</span>
+                </>
               )}
             </div>
           </div>
@@ -255,7 +269,12 @@ function Dashboard() {
           }}>
             {/* Inbox Section */}
             <div>
-              <Inbox userEmail={user.email} />
+              <Inbox userEmail={user.email} onEventSourceReady={setEventSource} />
+            </div>
+
+            {/* Classifications Section */}
+            <div>
+              <Classifications userEmail={user.email} eventSource={eventSource} />
             </div>
           </div>
         </main>

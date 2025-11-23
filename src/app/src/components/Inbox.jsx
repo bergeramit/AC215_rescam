@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 
-function Inbox({ userEmail }) {
+function Inbox({ userEmail, onEventSourceReady }) {
   const [emails, setEmails] = useState([])
   const [connected, setConnected] = useState(false)
   const [isExpanded, setIsExpanded] = useState(true)
@@ -15,6 +15,11 @@ function Inbox({ userEmail }) {
     const eventSource = new EventSource(`/api/emails/stream?user=${encodeURIComponent(userEmail)}`)
     eventSourceRef.current = eventSource
 
+    // Pass the event source up to parent so Classifications can use it too
+    if (onEventSourceReady) {
+      onEventSourceReady(eventSource)
+    }
+
     eventSource.onopen = () => {
       console.log('SSE connection opened')
       setConnected(true)
@@ -24,7 +29,7 @@ function Inbox({ userEmail }) {
     eventSource.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data)
-        
+
         if (data.type === 'connected') {
           console.log('SSE connected event received')
           setConnected(true)
@@ -61,7 +66,7 @@ function Inbox({ userEmail }) {
         eventSourceRef.current = null
       }
     }
-  }, [userEmail])
+  }, [userEmail, onEventSourceReady])
 
   const truncateBody = (body, maxLength = 200) => {
     if (!body) return ''
@@ -77,7 +82,7 @@ function Inbox({ userEmail }) {
     const diffMins = Math.floor(diffMs / 60000)
     const diffHours = Math.floor(diffMs / 3600000)
     const diffDays = Math.floor(diffMs / 86400000)
-    
+
     if (diffMins < 1) return 'Just now'
     if (diffMins < 60) return `${diffMins}m ago`
     if (diffHours < 24) return `${diffHours}h ago`
@@ -131,7 +136,7 @@ function Inbox({ userEmail }) {
         cursor: 'pointer',
         userSelect: 'none'
       }}
-      onClick={() => setIsExpanded(!isExpanded)}
+        onClick={() => setIsExpanded(!isExpanded)}
       >
         <div style={{
           display: 'flex',
@@ -141,7 +146,7 @@ function Inbox({ userEmail }) {
         }}>
           <div className={`collapse-icon ${!isExpanded ? 'collapsed' : ''}`}>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M4 6L8 10L12 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M4 6L8 10L12 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </div>
           <h3 style={{
@@ -181,9 +186,9 @@ function Inbox({ userEmail }) {
           </span>
         </div>
       </div>
-      
+
       {/* Content */}
-      <div 
+      <div
         className={`collapsible-content ${isExpanded ? 'expanded' : 'collapsed'}`}
         style={{
           maxHeight: isExpanded ? '600px' : '0',
@@ -230,7 +235,7 @@ function Inbox({ userEmail }) {
               {emails.map((email) => {
                 const unread = isEmailUnread(email.id)
                 const expanded = isEmailExpanded(email.id)
-                
+
                 return (
                   <div
                     key={email.id}
@@ -254,12 +259,12 @@ function Inbox({ userEmail }) {
                       borderBottom: '1px solid var(--color-border-light)',
                       transition: 'background-color var(--transition-base)'
                     }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = 'var(--color-surface-hover)'
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'transparent'
-                    }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = 'var(--color-surface-hover)'
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent'
+                      }}
                     >
                       {/* Unread Indicator */}
                       <div style={{
@@ -269,7 +274,7 @@ function Inbox({ userEmail }) {
                         background: unread ? 'var(--color-primary)' : 'transparent',
                         flexShrink: 0
                       }}></div>
-                      
+
                       {/* Sender */}
                       <div style={{
                         minWidth: '180px',
@@ -284,7 +289,7 @@ function Inbox({ userEmail }) {
                       }}>
                         {email.sender || 'Unknown Sender'}
                       </div>
-                      
+
                       {/* Subject Only */}
                       <div style={{
                         flex: 1,
@@ -301,7 +306,7 @@ function Inbox({ userEmail }) {
                           {email.subject || 'No Subject'}
                         </div>
                       </div>
-                      
+
                       {/* Timestamp */}
                       <div style={{
                         fontSize: 'var(--font-size-xs)',
@@ -313,18 +318,18 @@ function Inbox({ userEmail }) {
                       }}>
                         {email.timestamp ? formatTime(email.timestamp) : ''}
                       </div>
-                      
+
                       {/* Expand/Collapse Icon */}
                       <div className={`collapse-icon ${!expanded ? 'collapsed' : ''}`} style={{ flexShrink: 0 }}>
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M4 6L8 10L12 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M4 6L8 10L12 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
                       </div>
                     </div>
-                    
+
                     {/* Expanded Email Content */}
                     {expanded && (
-                      <div 
+                      <div
                         className="collapsible-content expanded"
                         style={{
                           padding: 'var(--spacing-lg)',
@@ -369,7 +374,7 @@ function Inbox({ userEmail }) {
                               </div>
                             )}
                           </div>
-                          
+
                           {/* Email Body */}
                           <div style={{
                             color: 'var(--color-text-primary)',
