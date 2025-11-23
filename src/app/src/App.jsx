@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import Login from './components/Login'
 import Dashboard from './components/Dashboard'
 import { getStoredUser } from './auth/googleAuth'
+import './styles/global.css'
 
 function AppContent() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -17,6 +18,9 @@ function AppContent() {
 
   useEffect(() => {
     checkAuth()
+    // Initialize theme
+    const savedTheme = localStorage.getItem('rescam-theme') || 'dark'
+    document.documentElement.setAttribute('data-theme', savedTheme)
   }, [])
 
   // Re-check auth when route changes (in case user just signed in)
@@ -42,7 +46,18 @@ function AppContent() {
   }, [])
 
   if (loading) {
-    return <div style={{ padding: '20px', textAlign: 'center' }}>Loading...</div>
+    return (
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        minHeight: '100vh',
+        color: 'var(--color-text-secondary)',
+        fontSize: 'var(--font-size-base)'
+      }}>
+        Loading...
+      </div>
+    )
   }
 
   return (

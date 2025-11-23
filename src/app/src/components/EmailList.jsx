@@ -36,31 +36,57 @@ function EmailList() {
         display: 'flex', 
         justifyContent: 'space-between', 
         alignItems: 'center',
-        marginBottom: '20px'
+        marginBottom: 'var(--spacing-lg)'
       }}>
-        <h2>Email Classifications</h2>
+        <h2 style={{
+          margin: 0,
+          fontSize: 'var(--font-size-xl)',
+          fontWeight: 'var(--font-weight-semibold)',
+          color: 'var(--color-text-primary)'
+        }}>
+          Email Classifications
+        </h2>
         <button
           onClick={fetchEmails}
           disabled={loading}
+          className="btn btn-primary"
           style={{
-            padding: '8px 16px',
-            backgroundColor: '#007bff',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: loading ? 'not-allowed' : 'pointer',
-            fontSize: '14px'
+            fontSize: 'var(--font-size-sm)',
+            padding: 'var(--spacing-sm) var(--spacing-md)'
           }}
         >
           {loading ? 'Loading...' : 'Refresh Emails'}
         </button>
       </div>
       {loading && !hasFetched ? (
-        <div style={{ padding: '20px' }}>Loading emails...</div>
+        <div style={{
+          padding: 'var(--spacing-xl)',
+          textAlign: 'center',
+          color: 'var(--color-text-secondary)',
+          fontSize: 'var(--font-size-base)'
+        }}>
+          Loading emails...
+        </div>
       ) : emails.length === 0 ? (
-        <p>No emails classified yet. {hasFetched ? 'Click "Refresh Emails" to load them.' : 'Click "Refresh Emails" to fetch your email classifications.'}</p>
+        <div className="card" style={{
+          padding: 'var(--spacing-xl)',
+          textAlign: 'center',
+          color: 'var(--color-text-secondary)'
+        }}>
+          <p style={{
+            margin: 0,
+            fontSize: 'var(--font-size-base)',
+            lineHeight: 'var(--line-height-relaxed)'
+          }}>
+            No emails classified yet. {hasFetched ? 'Click "Refresh Emails" to load them.' : 'Click "Refresh Emails" to fetch your email classifications.'}
+          </p>
+        </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 'var(--spacing-md)'
+        }}>
           {emails.map((email) => (
             <EmailItem key={email.id} email={email} />
           ))}

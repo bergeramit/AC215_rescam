@@ -1,8 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
 
-function Inbox({ userEmail }) {
+function Inbox({ userEmail, onEventSourceReady }) {
   const [emails, setEmails] = useState([])
   const [connected, setConnected] = useState(false)
+  const [isExpanded, setIsExpanded] = useState(true)
+  const [readEmails, setReadEmails] = useState(new Set())
+  const [expandedEmails, setExpandedEmails] = useState(new Set())
   const eventSourceRef = useRef(null)
 
   useEffect(() => {
@@ -11,6 +14,11 @@ function Inbox({ userEmail }) {
     // Create SSE connection
     const eventSource = new EventSource(`/api/emails/stream?user=${encodeURIComponent(userEmail)}`)
     eventSourceRef.current = eventSource
+
+    // Pass the event source up to parent so Classifications can use it too
+    if (onEventSourceReady) {
+      onEventSourceReady(eventSource)
+    }
 
     eventSource.onopen = () => {
       console.log('SSE connection opened')
@@ -21,7 +29,7 @@ function Inbox({ userEmail }) {
     eventSource.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data)
-        
+
         if (data.type === 'connected') {
           console.log('SSE connected event received')
           setConnected(true)
@@ -35,6 +43,7 @@ function Inbox({ userEmail }) {
             }
             return [email, ...prevEmails]
           })
+          // New emails are unread by default
         }
       } catch (error) {
         console.error('Error parsing SSE message:', error)
@@ -57,7 +66,7 @@ function Inbox({ userEmail }) {
         eventSourceRef.current = null
       }
     }
-  }, [userEmail])
+  }, [userEmail, onEventSourceReady])
 
   const truncateBody = (body, maxLength = 200) => {
     if (!body) return ''
@@ -68,121 +77,324 @@ function Inbox({ userEmail }) {
   const formatDate = (dateString) => {
     if (!dateString) return ''
     const date = new Date(dateString)
-    return date.toLocaleString()
+    const now = new Date()
+    const diffMs = now - date
+    const diffMins = Math.floor(diffMs / 60000)
+    const diffHours = Math.floor(diffMs / 3600000)
+    const diffDays = Math.floor(diffMs / 86400000)
+
+    if (diffMins < 1) return 'Just now'
+    if (diffMins < 60) return `${diffMins}m ago`
+    if (diffHours < 24) return `${diffHours}h ago`
+    if (diffDays < 7) return `${diffDays}d ago`
+    return date.toLocaleDateString()
+  }
+
+  const formatTime = (dateString) => {
+    if (!dateString) return ''
+    const date = new Date(dateString)
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  }
+
+  const toggleEmailExpanded = (emailId) => {
+    setExpandedEmails(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(emailId)) {
+        newSet.delete(emailId)
+      } else {
+        newSet.add(emailId)
+        // Mark as read when expanded
+        setReadEmails(prevRead => new Set([...prevRead, emailId]))
+      }
+      return newSet
+    })
+  }
+
+  const isEmailUnread = (emailId) => {
+    return !readEmails.has(emailId)
+  }
+
+  const isEmailExpanded = (emailId) => {
+    return expandedEmails.has(emailId)
   }
 
   return (
-    <div style={{
-      marginTop: '20px',
-      padding: '16px',
-      border: '1px solid #ddd',
-      borderRadius: '8px',
-      backgroundColor: '#f9f9f9',
-      maxHeight: '500px',
-      overflowY: 'auto'
+    <div className="card" style={{
+      border: '1px solid var(--color-border)',
+      borderRadius: 'var(--radius-lg)',
+      overflow: 'hidden',
+      transition: 'all var(--transition-base)'
     }}>
+      {/* Header */}
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: '12px'
-      }}>
-        <h3 style={{ margin: 0, fontSize: '18px' }}>Real-time Inbox</h3>
-        <span style={{
-          fontSize: '12px',
-          color: connected ? '#28a745' : '#dc3545',
+        padding: 'var(--spacing-md) var(--spacing-lg)',
+        borderBottom: isExpanded ? '1px solid var(--color-border)' : 'none',
+        background: 'var(--color-surface)',
+        cursor: 'pointer',
+        userSelect: 'none'
+      }}
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
+        <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '4px'
+          gap: 'var(--spacing-md)',
+          flex: 1
         }}>
-          <span style={{
-            width: '8px',
-            height: '8px',
-            borderRadius: '50%',
-            backgroundColor: connected ? '#28a745' : '#dc3545',
-            display: 'inline-block'
-          }}></span>
-          {connected ? 'Connected' : 'Disconnected'}
-        </span>
-      </div>
-      
-      {emails.length === 0 ? (
-        <p style={{ color: '#666', fontSize: '14px', margin: 0 }}>
-          No new emails yet. Waiting for incoming emails...
-        </p>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {emails.map((email) => (
-            <div
-              key={email.id}
-              style={{
-                padding: '12px',
-                backgroundColor: 'white',
-                border: '1px solid #e0e0e0',
-                borderRadius: '4px',
-                fontSize: '14px'
-              }}
-            >
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'start',
-                marginBottom: '8px'
-              }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{
-                    fontWeight: 'bold',
-                    color: '#333',
-                    marginBottom: '4px'
-                  }}>
-                    {email.sender || 'Unknown Sender'}
-                  </div>
-                  <div style={{
-                    color: '#555',
-                    marginBottom: '4px',
-                    fontWeight: '500'
-                  }}>
-                    {email.subject || 'No Subject'}
-                  </div>
-                </div>
-                {email.timestamp && (
-                  <div style={{
-                    fontSize: '11px',
-                    color: '#999',
-                    whiteSpace: 'nowrap',
-                    marginLeft: '12px'
-                  }}>
-                    {formatDate(email.timestamp)}
-                  </div>
-                )}
-              </div>
-              {email.body && (
-                <div style={{
-                  color: '#666',
-                  fontSize: '13px',
-                  lineHeight: '1.4',
-                  marginTop: '8px',
-                  whiteSpace: 'pre-wrap',
-                  wordBreak: 'break-word'
-                }}>
-                  {truncateBody(email.body)}
-                </div>
-              )}
-              {email.snippet && !email.body && (
-                <div style={{
-                  color: '#666',
-                  fontSize: '13px',
-                  lineHeight: '1.4',
-                  marginTop: '8px',
-                  fontStyle: 'italic'
-                }}>
-                  {email.snippet}
-                </div>
-              )}
+          <div className={`collapse-icon ${!isExpanded ? 'collapsed' : ''}`}>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M4 6L8 10L12 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
+          <h3 style={{
+            margin: 0,
+            fontSize: 'var(--font-size-lg)',
+            fontWeight: 'var(--font-weight-semibold)',
+            color: 'var(--color-text-primary)'
+          }}>
+            Real-time Inbox
+          </h3>
+          {emails.length > 0 && (
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              minWidth: '24px',
+              height: '24px',
+              padding: '0 var(--spacing-xs)',
+              background: 'var(--color-primary)',
+              color: 'white',
+              borderRadius: 'var(--radius-full)',
+              fontSize: 'var(--font-size-xs)',
+              fontWeight: 'var(--font-weight-semibold)'
+            }}>
+              {emails.length}
             </div>
-          ))}
+          )}
         </div>
-      )}
+        <div className="status-indicator">
+          <span className={`status-dot ${connected ? 'connected' : 'disconnected'}`}></span>
+          <span style={{
+            fontSize: 'var(--font-size-sm)',
+            color: connected ? 'var(--color-success)' : 'var(--color-error)',
+            fontWeight: 'var(--font-weight-medium)'
+          }}>
+            {connected ? 'Connected' : 'Disconnected'}
+          </span>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div
+        className={`collapsible-content ${isExpanded ? 'expanded' : 'collapsed'}`}
+        style={{
+          maxHeight: isExpanded ? '600px' : '0',
+          transition: 'max-height var(--transition-slow), opacity var(--transition-base)',
+          opacity: isExpanded ? 1 : 0
+        }}
+      >
+        <div style={{
+          padding: 0,
+          maxHeight: '600px',
+          overflowY: 'auto',
+          background: 'var(--color-surface)'
+        }}>
+          {emails.length === 0 ? (
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 'var(--spacing-2xl)',
+              color: 'var(--color-text-secondary)',
+              textAlign: 'center'
+            }}>
+              <div style={{
+                fontSize: 'var(--font-size-sm)',
+                marginBottom: 'var(--spacing-xs)',
+                fontWeight: 'var(--font-weight-medium)'
+              }}>
+                No new emails yet
+              </div>
+              <div style={{
+                fontSize: 'var(--font-size-xs)',
+                color: 'var(--color-text-tertiary)'
+              }}>
+                Waiting for incoming emails...
+              </div>
+            </div>
+          ) : (
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 'var(--spacing-xs)'
+            }}>
+              {emails.map((email) => {
+                const unread = isEmailUnread(email.id)
+                const expanded = isEmailExpanded(email.id)
+
+                return (
+                  <div
+                    key={email.id}
+                    className={`${unread ? 'email-unread' : 'email-read'}`}
+                    style={{
+                      padding: 0,
+                      border: 'none',
+                      borderRadius: 0,
+                      transition: 'all var(--transition-base)',
+                      cursor: 'pointer'
+                    }}
+                    onClick={() => toggleEmailExpanded(email.id)}
+                  >
+                    {/* Collapsed Email Row */}
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 'var(--spacing-md)',
+                      padding: 'var(--spacing-md)',
+                      paddingLeft: 'var(--spacing-lg)',
+                      borderBottom: '1px solid var(--color-border-light)',
+                      transition: 'background-color var(--transition-base)'
+                    }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = 'var(--color-surface-hover)'
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent'
+                      }}
+                    >
+                      {/* Unread Indicator */}
+                      <div style={{
+                        width: '8px',
+                        height: '8px',
+                        borderRadius: 'var(--radius-full)',
+                        background: unread ? 'var(--color-primary)' : 'transparent',
+                        flexShrink: 0
+                      }}></div>
+
+                      {/* Sender */}
+                      <div style={{
+                        minWidth: '180px',
+                        maxWidth: '180px',
+                        fontSize: 'var(--font-size-sm)',
+                        fontWeight: unread ? 'var(--font-weight-semibold)' : 'var(--font-weight-normal)',
+                        color: 'var(--color-text-primary)',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        flexShrink: 0
+                      }}>
+                        {email.sender || 'Unknown Sender'}
+                      </div>
+
+                      {/* Subject Only */}
+                      <div style={{
+                        flex: 1,
+                        minWidth: 0
+                      }}>
+                        <div className="email-subject" style={{
+                          fontSize: 'var(--font-size-base)',
+                          fontWeight: unread ? 'var(--font-weight-semibold)' : 'var(--font-weight-normal)',
+                          color: 'var(--color-text-primary)',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          {email.subject || 'No Subject'}
+                        </div>
+                      </div>
+
+                      {/* Timestamp */}
+                      <div style={{
+                        fontSize: 'var(--font-size-xs)',
+                        color: 'var(--color-text-tertiary)',
+                        whiteSpace: 'nowrap',
+                        flexShrink: 0,
+                        minWidth: '80px',
+                        textAlign: 'right'
+                      }}>
+                        {email.timestamp ? formatTime(email.timestamp) : ''}
+                      </div>
+
+                      {/* Expand/Collapse Icon */}
+                      <div className={`collapse-icon ${!expanded ? 'collapsed' : ''}`} style={{ flexShrink: 0 }}>
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M4 6L8 10L12 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </div>
+                    </div>
+
+                    {/* Expanded Email Content */}
+                    {expanded && (
+                      <div
+                        className="collapsible-content expanded"
+                        style={{
+                          padding: 'var(--spacing-lg)',
+                          paddingLeft: 'var(--spacing-2xl)',
+                          borderBottom: '1px solid var(--color-border-light)',
+                          background: 'var(--color-surface)'
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 'var(--spacing-md)'
+                        }}>
+                          {/* Email Header */}
+                          <div style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 'var(--spacing-xs)',
+                            paddingBottom: 'var(--spacing-md)',
+                            borderBottom: '1px solid var(--color-border)'
+                          }}>
+                            <div style={{
+                              fontSize: 'var(--font-size-base)',
+                              fontWeight: 'var(--font-weight-semibold)',
+                              color: 'var(--color-text-primary)'
+                            }}>
+                              {email.subject || 'No Subject'}
+                            </div>
+                            <div style={{
+                              fontSize: 'var(--font-size-sm)',
+                              color: 'var(--color-text-secondary)'
+                            }}>
+                              <strong>From:</strong> {email.sender || 'Unknown Sender'}
+                            </div>
+                            {email.timestamp && (
+                              <div style={{
+                                fontSize: 'var(--font-size-xs)',
+                                color: 'var(--color-text-tertiary)'
+                              }}>
+                                {formatDate(email.timestamp)} • {formatTime(email.timestamp)}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Email Body */}
+                          <div style={{
+                            color: 'var(--color-text-primary)',
+                            fontSize: 'var(--font-size-base)',
+                            lineHeight: 'var(--line-height-relaxed)',
+                            whiteSpace: 'pre-wrap',
+                            wordBreak: 'break-word'
+                          }}>
+                            {email.body || email.snippet || 'No content'}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   )
 }
