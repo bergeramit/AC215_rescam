@@ -114,3 +114,14 @@ src/datapipeline/processed-dataset/*
 src/datapipeline/secrets/*
 secrets/application_default_credentials.json
 secrets/*
+
+# Fine-tuning temporary files
+src/models/experiment_log_*.json
+src/models/training_data.*
+src/models/validation_data.*
+src/models/train_env/
+src/models/.venv/
+src/models/check_finetuning_status.py
+src/models/create_job*.sh
+src/models/create_tuning_job.py
+src/models/example_last_email.txt

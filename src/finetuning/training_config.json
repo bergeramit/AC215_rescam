@@ -1,0 +1,43 @@
+{
+  "training_config": {
+    "description": "Configuration for Gemini fine-tuning on phishing email classification",
+    "version": "1.0",
+    "last_updated": "2025-11-18",
+    
+    "dataset": {
+      "source_bucket": "rescam-dataset-bucket",
+      "source_path": "processed-dataset/cleaned_dataset.parquet",
+      "label_mapping": {
+        "0": "benign",
+        "1": "scam"
+      }
+    },
+    
+    "training_parameters": {
+      "max_examples": 1000,
+      "min_text_length": 10,
+      "base_model": "gemini-1.5-flash",
+      "validation_split": 0.2
+    },
+    
+    "vertex_ai": {
+      "project_id": "1097076476714",
+      "region": "us-central1",
+      "bucket_name": "rescam-rag-bucket"
+    },
+    
+    "deployment": {
+      "model_registry": true,
+      "version_control": true,
+      "rollback_enabled": true
+    },
+    
+    "notes": [
+      "Fine-tuning takes 1-4 hours depending on dataset size",
+      "Always run --dry-run first to validate data",
+      "Experiment logs are saved to GCS for tracking",
+      "Update model_rag.py after fine-tuning completes"
+    ]
+  }
+}
+

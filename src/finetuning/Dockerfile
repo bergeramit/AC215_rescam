@@ -28,7 +28,7 @@ USER app
 WORKDIR /app
 
 # Copy the pyproject.toml for uv sync to download all necessary dependencies
-COPY --chown=app:app src/models/pyproject.toml .
+COPY --chown=app:app src/finetuning/pyproject.toml .
 
 # Install uv, create venv, and install requirements
 ENV PATH="/home/app/.local/bin:$PATH"
@@ -37,15 +37,11 @@ RUN curl -LsSf https://astral.sh/uv/install.sh | sh && uv sync
 # Set environment variables
 ENV PATH="/home/app/.venv/bin:$PATH"
 
-# Copy the content of the local src directory to the working directory
-COPY --chown=app:app src/models/train_model.py .
-COPY --chown=app:app src/models/infer_model.py .
-COPY --chown=app:app src/models/model_rag.py .
-COPY --chown=app:app src/models/firestore_event_handler.py .
-
-RUN mkdir -p ./protobuf_schema
-COPY --chown=app:app src/models/protobuf_schema/firestore_message_pb2.py ./protobuf_schema/
-COPY --chown=app:app src/models/protobuf_schema/__init__.py ./protobuf_schema/
+# Copy model files
+COPY --chown=app:app src/finetuning/train_model.py .
+COPY --chown=app:app src/finetuning/infer_model.py .
+COPY --chown=app:app src/finetuning/training_config.json .
+COPY --chown=app:app src/finetuning/check_gcs_data.py .
 
 # Create the gcloud config directory (volume mount will provide credentials)
 RUN mkdir -p /home/app/.config/gcloud
@@ -53,7 +49,8 @@ RUN mkdir -p /home/app/.config/gcloud
 # Set PORT for Cloud Run (defaults to 8080, but Cloud Run will override this)
 ENV PORT=8080
 
-# Set the entrypoint and default command to run FastAPI server
+# Set the entrypoint and default command
+# For interactive use, docker-shell.sh will override this with bash
 # For Cloud Run, use uvicorn with PORT from environment variable
-# Cloud Run sets PORT dynamically, so we need to use shell to read it
-CMD ["sh", "-c", "/home/app/.venv/bin/uvicorn firestore_event_handler:app --host 0.0.0.0 --port ${PORT:-8080}"]
+ENTRYPOINT ["/bin/bash"]
+CMD ["-c", "source /home/app/.venv/bin/activate && /bin/bash"]
