@@ -9,7 +9,7 @@
 ## 1. Training Scripts and Configuration Files
 
 ### Training Script
-- **File:** `src/models/train_model.py`
+- **File:** `src/finetuning/train_model.py`
 - **Purpose:** Fine-tune Gemini 1.5 Flash model on labeled phishing email dataset
 - **Key Features:**
   - Downloads dataset from GCS
@@ -19,7 +19,7 @@
   - Logs experiment metadata
 
 ### Configuration File
-- **File:** `src/models/training_config.json`
+- **File:** `src/finetuning/training_config.json`
 - **Contents:**
   - Dataset source (bucket, path, label mapping)
   - Training parameters (max examples, base model, validation split)
@@ -204,7 +204,7 @@ The fine-tuning job prepares the model for improved phishing detection. Expected
 ### Required Deployment Changes
 
 #### 1. Update Model Reference
-**File:** `src/models/model_rag.py`
+**File:** `src/finetuning/model_rag.py`
 
 **Before:**
 ```python
@@ -223,10 +223,6 @@ model = genai.GenerativeModel(fine_tuned_model_id)
 - Version the model (e.g., `v1.0`, `v1.1`)
 - Enable rollback capability if new model performs worse
 
-#### 3. Version Tracking
-**File:** `src/models/firestore_event_handler.py`
-- Update model version tracking
-- Log which model version is used for each classification
 
 #### 4. Deployment Strategy
 - **Option A (Recommended):** Direct replacement of base model
@@ -245,8 +241,7 @@ model = genai.GenerativeModel(fine_tuned_model_id)
 **Key Changes Required:**
 1. Update model reference in `model_rag.py` to use fine-tuned model ID
 2. Register model in Vertex AI Model Registry for version control
-3. Update model version tracking in `firestore_event_handler.py`
-4. Monitor performance metrics in production
+3. Monitor performance metrics in production
 
 **No Changes Required:**
 - RAG/Vector Search system (remains unchanged)
@@ -269,13 +264,13 @@ model = genai.GenerativeModel(fine_tuned_model_id)
 ## 7. Files and Artifacts
 
 ### Training Artifacts
-1. **Training Script:** `src/models/train_model.py`
-2. **Config File:** `src/models/training_config.json`
+1. **Training Script:** `src/finetuning/train_model.py`
+2. **Config File:** `src/finetuning/training_config.json`
 3. **Training Data:** `gs://rescam-rag-bucket/fine-tuning/[experiment]/training_data.jsonl`
 4. **Experiment Logs:** `gs://rescam-rag-bucket/experiments/[experiment]/experiment_log.json`
 
 ### Documentation
-1. **This Summary:** `src/models/MILESTONE4_FINETUNING_SUMMARY.md`
+1. **This Summary:** `src/finetuning/MILESTONE4_FINETUNING_SUMMARY.md`
 
 ---
 
@@ -284,7 +279,7 @@ model = genai.GenerativeModel(fine_tuned_model_id)
 ### To Reproduce This Experiment
 
 1. **Dataset:** Download from `gs://rescam-dataset-bucket/processed-dataset/cleaned_dataset.parquet`
-2. **Config:** Use `src/models/training_config.json`
+2. **Config:** Use `src/finetuning/training_config.json`
 3. **Script:** Run `python3 train_model.py --max-examples 1000`
 4. **Parameters:** All logged in experiment log JSON
 
