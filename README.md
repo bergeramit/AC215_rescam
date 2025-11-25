@@ -9,6 +9,7 @@ Rescam is a phishing email detection system that uses Retrieval-Augmented Genera
 - [🏗️ Architecture Overview](#architecture-overview)
 - [🔄 DataPipeline - Preprocess Container](#data-pipeline)
 - [🤖 Fraud Classification Service - Cloud Run](#rag-model-design)
+- [🧠 Model Fine-Tuning](#model-fine-tuning)
 - [🚀 SaaS Application - Docker Compose Containers](#docker-compose-containers)
 - [📜 Appendix](#appendix)
 
@@ -159,6 +160,59 @@ gcloud run deploy firestore-event-handler \
   --allow-unauthenticated \
   --set-env-vars GCP_PROJECT_ID=articulate-fort-472520-p2
 ```
+
+## 🧠 Model Fine-Tuning
+
+The `src/finetuning/` directory contains the pipeline for fine-tuning the Gemini 1.5 Flash model on our labeled phishing email dataset. This process specializes the model to better distinguish between benign, spam, scam, and suspicious emails based on our specific data patterns.
+
+### Key Components
+
+1.  **Training Script** (`src/finetuning/train_model.py`):
+    - Handles the end-to-end fine-tuning process
+    - Downloads and validates data from GCS
+    - Converts data to Gemini-compatible JSONL format
+    - Launches the Vertex AI fine-tuning job
+    - Logs all experiment metadata for reproducibility
+
+2.  **Configuration** (`src/finetuning/training_config.json`):
+    - Defines dataset sources and label mappings
+    - Sets training parameters (epochs, learning rate, etc.)
+    - Configures Vertex AI settings (region, project, bucket)
+
+### Workflow
+
+1.  **Data Preparation**: The script downloads the `cleaned_dataset.parquet` from GCS, validates it, and balances the dataset (approx. 50/50 split between phishing and legitimate emails).
+2.  **Transformation**: Data is converted into the specific JSONL format required by Gemini fine-tuning, with structured prompts.
+3.  **Training**: A fine-tuning job is submitted to Vertex AI. The job runs asynchronously on Google Cloud infrastructure.
+4.  **Logging**: Detailed experiment logs (including dataset version, hyperparameters, and job IDs) are saved locally and uploaded to GCS for full traceability.
+
+### Usage
+
+To run the fine-tuning process using Docker:
+
+1.  **Build the container**:
+    ```bash
+    docker build -t rescam-finetuning -f src/finetuning/Dockerfile .
+    ```
+
+2.  **Run the training job**:
+    ```bash
+    # Dry-run (validate data and config)
+    docker run --rm \
+      -v $(pwd)/secrets:/home/app/.config/gcloud:ro \
+      -e GOOGLE_APPLICATION_CREDENTIALS=/home/app/.config/gcloud/application_default_credentials.json \
+      rescam-finetuning python train_model.py --dry-run --max-examples 100
+
+    # Start full fine-tuning job
+    docker run --rm \
+      -v $(pwd)/secrets:/home/app/.config/gcloud:ro \
+      -e GOOGLE_APPLICATION_CREDENTIALS=/home/app/.config/gcloud/application_default_credentials.json \
+      rescam-finetuning python train_model.py --max-examples 1000
+    ```
+
+    *Note: Ensure you have your GCP credentials in `secrets/application_default_credentials.json`.*
+
+For a detailed summary of the fine-tuning milestone, see [`src/finetuning/MILESTONE4_FINETUNING_SUMMARY.md`](src/finetuning/MILESTONE4_FINETUNING_SUMMARY.md).
 
 ## 🚀 SaaS Application - Docker Compose Containers
 

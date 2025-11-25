@@ -50,7 +50,7 @@ RUN mkdir -p /home/app/.config/gcloud
 ENV PORT=8080
 
 # Set the entrypoint and default command
-# For interactive use, docker-shell.sh will override this with bash
-# For Cloud Run, use uvicorn with PORT from environment variable
+# This allows running "docker run ..." to execute the training script by default
+# or override with "docker run ... /bin/bash" for a shell
 ENTRYPOINT ["/bin/bash"]
-CMD ["-c", "source /home/app/.venv/bin/activate && /bin/bash"]
+CMD ["-c", "source /home/app/.venv/bin/activate && python train_model.py"]
