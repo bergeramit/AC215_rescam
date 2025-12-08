@@ -1,0 +1,158 @@
+{
+  "emails": [
+    {
+      "id": "19ab21077546e746",
+      "threadId": "19ab21077546e746",
+      "receivedAt": "2025-11-23T18:53:31Z",
+      "sender": "Amit Berger <aberger@g.harvard.edu>",
+      "subject": "test subject for recording",
+      "snippet": "Test body. Not a scam! Sent via Superhuman",
+      "classification": {
+        "classification": "benign",
+        "confidence": 0.98,
+        "primary_reason": "The email explicitly states it is a 'test subject' and 'Not a scam!'. The RAG is empty, indicating no prior history to contradict this claim.",
+        "indicators": [
+          "unknown_sender_no_history",
+          "rag_empty"
+        ],
+        "evidence": [
+          {
+            "source": "current_email",
+            "quote": "Subject: test subject for recording"
+          },
+          {
+            "source": "current_email",
+            "quote": "Test body. Not a scam!"
+          }
+        ],
+        "parsed": {
+          "sender_display": "Amit Berger",
+          "sender_email": "aberger@g.harvard.edu",
+          "from_domain": "g.harvard.edu",
+          "reply_to": "Not explicitly present",
+          "links": [
+            "sprh.mn"
+          ],
+          "attachments": [],
+          "headers_used": true
+        },
+        "recommended_action": "allow"
+      },
+      "processedAt": "2025-11-23T18:53:39.081863Z"
+    },
+    {
+      "id": "19ab20c572d1b8d6",
+      "threadId": "19ab20c572d1b8d6",
+      "receivedAt": "2025-11-23T18:49:01Z",
+      "sender": "Amit Berger <aberger@g.harvard.edu>",
+      "subject": "test subject",
+      "snippet": "Test body Sent via Superhuman",
+      "classification": {
+        "classification": "benign",
+        "confidence": 0.95,
+        "primary_reason": "The email is a short, internal-looking test message with a sender and domain that match the display name. The RAG is empty, suggesting no prior context, but the content itself is non-malicious.",
+        "indicators": [
+          "rag_empty",
+          "known_contact_match"
+        ],
+        "evidence": [
+          {
+            "source": "current_email",
+            "quote": "From: Amit Berger <aberger@g.harvard.edu>\nSubject: test subject\nTest body"
+          }
+        ],
+        "parsed": {
+          "sender_display": "Amit Berger",
+          "sender_email": "aberger@g.harvard.edu",
+          "from_domain": "g.harvard.edu",
+          "reply_to": null,
+          "links": [
+            "sprh.mn"
+          ],
+          "attachments": [],
+          "headers_used": true
+        },
+        "recommended_action": "allow"
+      },
+      "processedAt": "2025-11-23T18:49:09.752527Z"
+    },
+    {
+      "id": "19ab205dfbb6c846",
+      "threadId": "19ab205dfbb6c846",
+      "receivedAt": "2025-11-23T18:41:57Z",
+      "sender": "Amit Berger <aberger@g.harvard.edu>",
+      "subject": "test subject",
+      "snippet": "Test body. Not a spam! Sent via Superhuman",
+      "classification": {
+        "classification": "benign",
+        "confidence": 0.98,
+        "primary_reason": "The email appears to be a genuine internal or familiar test message from a known domain (harvard.edu), lacking malicious content or urgency.",
+        "indicators": [
+          "known_contact_match"
+        ],
+        "evidence": [
+          {
+            "source": "current_email",
+            "quote": "From: Amit Berger <aberger@g.harvard.edu>"
+          },
+          {
+            "source": "current_email",
+            "quote": "Test body. Not a spam!"
+          }
+        ],
+        "parsed": {
+          "sender_display": "Amit Berger",
+          "sender_email": "aberger@g.harvard.edu",
+          "from_domain": "g.harvard.edu",
+          "reply_to": null,
+          "links": [
+            "sprh.mn"
+          ],
+          "attachments": [],
+          "headers_used": true
+        },
+        "recommended_action": "allow"
+      },
+      "processedAt": "2025-11-23T18:42:06.153464Z"
+    },
+    {
+      "id": "19ab1fb5ec66de73",
+      "threadId": "19ab1fb5ec66de73",
+      "receivedAt": "2025-11-23T18:30:29Z",
+      "sender": "Amit Berger <aberger@g.harvard.edu>",
+      "subject": "test subject 1337",
+      "snippet": "Test body Sent via Superhuman",
+      "classification": {
+        "classification": "benign",
+        "confidence": 0.95,
+        "primary_reason": "The email appears to be a genuine internal test message from a known sender domain (harvard.edu) via a legitimate client (Superhuman), and the RAG context is empty.",
+        "indicators": [
+          "known_contact_match"
+        ],
+        "evidence": [
+          {
+            "source": "current_email",
+            "quote": "From: Amit Berger <aberger@g.harvard.edu>\nSubject: test subject 1337"
+          },
+          {
+            "source": "current_email",
+            "quote": "Sent via Superhuman ( https://sprh.mn/?vip=aberger@g.harvard.edu )"
+          }
+        ],
+        "parsed": {
+          "sender_display": "Amit Berger",
+          "sender_email": "aberger@g.harvard.edu",
+          "from_domain": "g.harvard.edu",
+          "reply_to": null,
+          "links": [
+            "sprh.mn"
+          ],
+          "attachments": [],
+          "headers_used": true
+        },
+        "recommended_action": "allow"
+      },
+      "processedAt": "2025-11-23T18:30:38.134104Z"
+    }
+  ]
+}
