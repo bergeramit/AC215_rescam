@@ -1,8 +1,6 @@
 import { PubSub } from '@google-cloud/pubsub'
 import { notifyEmailUpdate } from './emails.js'
 import { getGmailClient, getMessagesSinceHistoryId, getMessage } from '../services/gmailService.js'
-import { classifyEmail } from '../services/modelService.js'
-import { saveEmailClassification } from '../services/gcsService.js'
 import { getStoredToken, getLastHistoryId, storeLastHistoryId } from '../services/tokenStore.js'
 import { storeEmailInFirestore } from '../services/firestoreService.js'
 

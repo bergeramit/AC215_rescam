@@ -1,12 +1,13 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import ClassificationItem from './ClassificationItem'
 
 function Classifications({ userEmail, eventSource }) {
     const [emails, setEmails] = useState([])
     const [isExpanded, setIsExpanded] = useState(true)
+    const seenEmailIdsRef = useRef(new Set())
 
     // DEBUG: Print current state
-    console.log('Rendering Classifications, emails count:', emails.length)
+    // console.log('Rendering Classifications, emails count:', emails.length)
 
     useEffect(() => {
         if (!eventSource) return
@@ -14,13 +15,29 @@ function Classifications({ userEmail, eventSource }) {
         const handleMessage = (event) => {
             try {
                 // DEBUG: Print raw event data
-                console.log('Received raw SSE event:', event)
+                // console.log('Received SSE message in Classifications:', event.data)
                 const data = JSON.parse(event.data)
-                console.log('Parsed SSE data:', data)
+                // console.log('Parsed SSE data:', data)
+                // console.log('Current seenEmailIds:', Array.from(seenEmailIdsRef.current))
 
                 if (data.type === 'classification_update' && data.email && data.email.emails) {
-                    console.log('Received classification update', data.email.emails.length)
-                    setEmails(data.email.emails)
+                    const incomingEmails = data.email.emails
+                    // console.log('Received classification update', incomingEmails.length)
+
+                    // Filter out emails we've already seen (using ref.current)
+                    const newEmails = incomingEmails.filter(email => !seenEmailIdsRef.current.has(email.id))
+
+                    if (newEmails.length > 0) {
+                        // Update the ref's Set directly (no state update needed)
+                        newEmails.forEach(email => seenEmailIdsRef.current.add(email.id))
+
+                        // Prepend new emails to the top of the list
+                        setEmails(prev => [...newEmails, ...prev])
+
+                        // console.log(`Added ${newEmails.length} new classification(s)`)
+                    } else {
+                        console.log('No new emails to add (all already seen)')
+                    }
                 }
             } catch (error) {
                 console.error('Error parsing SSE message in Classifications:', error)
