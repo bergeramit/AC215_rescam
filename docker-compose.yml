@@ -28,8 +28,8 @@ services:
       - GCS_BUCKET_NAME=rescam-dataset-bucket
       - PUBSUB_TOPIC_NAME=gmail-notifications
       - LOG_LEVEL=debug
-      - NODE_ENV=development
-      - DEBUG=*
+      # - NODE_ENV=development
+      # - DEBUG=*
     env_file:
       - ./src/api/.env
 
