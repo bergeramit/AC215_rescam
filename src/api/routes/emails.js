@@ -38,8 +38,19 @@ export function streamEmails(req, res) {
   // Send initial connection message
   res.write(`data: ${JSON.stringify({ type: 'connected' })}\n\n`)
 
+  // Send heartbeat every 30 seconds to keep connection alive
+  const heartbeatInterval = setInterval(() => {
+    try {
+      res.write(':heartbeat\n\n')
+    } catch (error) {
+      console.error('Error sending heartbeat:', error)
+      clearInterval(heartbeatInterval)
+    }
+  }, 30000)
+
   // Clean up on client disconnect
   req.on('close', () => {
+    clearInterval(heartbeatInterval)
     const clients = sseClients.get(userEmail)
     if (clients) {
       const index = clients.indexOf(res)
@@ -53,6 +64,7 @@ export function streamEmails(req, res) {
   })
 
   res.on('error', () => {
+    clearInterval(heartbeatInterval)
     // Clean up on error
     const clients = sseClients.get(userEmail)
     if (clients) {
