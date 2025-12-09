@@ -220,15 +220,15 @@ This is our SaaS application that provides a user interface for interacting with
 
 ### 1. `src/app`
 
-This is our Angular application that provides a user interface for interacting with the Rescam system.
+This is our React application that provides a user interface for interacting with the Rescam system.
 
 ### 2. `src/api`
 
-This is our FastAPI application that provides a REST API for interacting with the Rescam system.
+This is our FastAPI/Node application that provides a REST API for interacting with the Rescam system.
 
-### 3. Deployment as Docker Compose
+### 3. Local Development Deployment
 
-in order to run the app and api you need to run:
+For local development, run:
 ```bash
 docker-compose up
 ```
@@ -251,6 +251,36 @@ Then navigate to http://localhost:3000/
 - start watch (pub/sub)
 - send email to yourself
 - View it in dashboard
+
+### 4. Production Deployment (GCP Compute Engine with HTTPS)
+
+For production deployment on Google Cloud Platform with HTTPS support:
+
+**🌐 Live Production URL**: https://35-224-238-97.nip.io
+
+**Prerequisites:**
+- GCP Compute Engine VM with static external IP
+- Firewall rules allowing ports 80, 443, and 22
+- Docker and Docker Compose installed on VM
+
+**Quick Start:**
+1. Clone repository to VM: `git clone <repo-url> ~/rescam && cd ~/rescam`
+2. Copy GCP credentials to VM: `scp -r ./secrets/ user@<vm-ip>:~/rescam/secrets/`
+3. Obtain SSL certificate: `sudo certbot certonly --standalone -d 35-224-238-97.nip.io`
+4. Build and start containers: `docker-compose build --no-cache && docker-compose up -d`
+5. Configure Nginx: `sudo cp nginx-host.conf /etc/nginx/sites-available/rescam && sudo systemctl start nginx`
+6. Update OAuth origins in [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
+7. Update Pub/Sub webhook URL to `https://35-224-238-97.nip.io/api/pubsub/webhook`
+
+**📖 Complete Deployment Guide**: See [reports/GCP_HTTPS_DEPLOYMENT.md](reports/GCP_HTTPS_DEPLOYMENT.md) for detailed step-by-step instructions, troubleshooting, and maintenance procedures.
+
+**Key Features:**
+- ✅ Free DNS via nip.io (no domain purchase required)
+- ✅ Valid SSL certificates from Let's Encrypt (auto-renewing)
+- ✅ HTTP → HTTPS automatic redirect
+- ✅ Security headers (HSTS, X-Frame-Options, etc.)
+- ✅ Server-Sent Events (SSE) support for real-time email updates
+- ✅ Production-ready Nginx reverse proxy configuration
 
 
 ## 📜 Appendix
