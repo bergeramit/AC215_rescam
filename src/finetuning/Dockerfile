@@ -28,7 +28,7 @@ USER app
 WORKDIR /app
 
 # Copy the pyproject.toml for uv sync to download all necessary dependencies
-COPY --chown=app:app src/models/pyproject.toml .
+COPY --chown=app:app src/finetuning/pyproject.toml .
 
 # Install uv, create venv, and install requirements
 ENV PATH="/home/app/.local/bin:$PATH"
@@ -38,15 +38,10 @@ RUN curl -LsSf https://astral.sh/uv/install.sh | sh && uv sync
 ENV PATH="/home/app/.venv/bin:$PATH"
 
 # Copy model files
-COPY --chown=app:app src/models/train_model.py .
-COPY --chown=app:app src/models/infer_model.py .
-COPY --chown=app:app src/models/model_rag.py .
-COPY --chown=app:app src/models/firestore_event_handler.py .
-COPY --chown=app:app src/models/training_config.json .
-
-RUN mkdir -p ./protobuf_schema
-COPY --chown=app:app src/models/protobuf_schema/firestore_message_pb2.py ./protobuf_schema/
-COPY --chown=app:app src/models/protobuf_schema/__init__.py ./protobuf_schema/
+COPY --chown=app:app src/finetuning/train_model.py .
+COPY --chown=app:app src/finetuning/infer_model.py .
+COPY --chown=app:app src/finetuning/training_config.json .
+COPY --chown=app:app src/finetuning/check_gcs_data.py .
 
 # Create the gcloud config directory (volume mount will provide credentials)
 RUN mkdir -p /home/app/.config/gcloud
