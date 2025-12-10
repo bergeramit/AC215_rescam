@@ -8,7 +8,7 @@ import os
 import pandas as pd
 from google.cloud import aiplatform, storage
 from vertexai.language_models import TextEmbeddingModel
-import google.generativeai as genai
+from google import genai
 
 logging.basicConfig(level=logging.INFO)
 
@@ -259,23 +259,30 @@ def classify_email_with_rag(
     # )
     rag_context = ""
 
-    # 4. Configure Gemini API with API key from environment variable
-    api_key = os.getenv("GEMINI_API_KEY")
+    # 4. Configure Gemini API client for fine-tuned model
+    api_key = os.getenv("GOOGLE_CLOUD_API_KEY")
     if not api_key:
         raise ValueError(
-            "GEMINI_API_KEY environment variable is not set. "
-            "Please set it with your Google Gemini API key."
+            "GOOGLE_CLOUD_API_KEY environment variable is not set. "
+            "Please set it with your Google Cloud API key."
         )
-    genai.configure(api_key=api_key)
-    model = genai.GenerativeModel("gemini-2.5-flash-lite-preview-09-2025")
+
+    client = genai.Client(
+        vertexai=True,
+        api_key=api_key,
+    )
+    model_endpoint = "projects/1097076476714/locations/us-east1/endpoints/2729113204465598464"
 
     # 5. Construct the prompt and generate content
     prompt = INSTRUCTION_PROMPT.format(
         email_content=email_content, rag_context=rag_context
     )
 
-    logging.info("Sending request to the Gemini API...")
-    response = model.generate_content(prompt)
+    logging.info("Sending request to the fine-tuned model...")
+    response = client.models.generate_content(
+        model=model_endpoint,
+        contents=prompt,
+    )
 
     classification = response.text.strip()
     logging.info(f"Classification result: {classification}")

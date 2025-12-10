@@ -246,6 +246,14 @@ gcloud pubsub subscriptions create gmail-notifications-push \
      --project=articulate-fort-472520-p2
 ```
 
+Production
+```
+gcloud pubsub subscriptions create gmail-notifications-push \
+     --topic=gmail-notifications \
+     --push-endpoint=https://35-224-238-97.nip.io/ \
+     --project=articulate-fort-472520-p2
+```
+
 Then navigate to http://localhost:3000/
 - sign in with google (amitberger02@gmail.com)
 - start watch (pub/sub)
